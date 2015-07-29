@@ -1,0 +1,10 @@
+#ignore compiles binary files
+lib/*
+bin/*
+
+#ignore .txt datafiles and config files
+*.txt
+
+#ignore built docs
+doc/_build/*
+doc/**/*.tar.gz

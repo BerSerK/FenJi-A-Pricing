@@ -1,0 +1,18 @@
+<==
+AType common
+NAV_m 1.2202
+mu 0.0902
+fee 0.0122
+sigma 0.309
+leverage_ratio 2
+fix_profit 0.065
+==>
+<==
+AType common
+NAV_m 1.2202
+mu 0.0902
+fee 0.0122
+sigma 0.309
+leverage_ratio 2
+fix_profit 0.065
+==>

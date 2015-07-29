@@ -1,0 +1,119 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>QEPM模型 &mdash; 分级A份Monte Carlo模拟定价C++实现 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="分级A份Monte Carlo模拟定价C++实现 0.1 documentation" href="index.html" />
+    <link rel="next" title="模拟程序结构设计" href="design.html" />
+    <link rel="prev" title="分级基金A份定价问题" href="model.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="design.html" title="模拟程序结构设计"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="model.html" title="分级基金A份定价问题"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">分级A份Monte Carlo模拟定价C++实现 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="qepm">
+<span id="index-0"></span><h1>QEPM模型<a class="headerlink" href="#qepm" title="Permalink to this headline">¶</a></h1>
+<p>我们通过QEPM模型来确定分级A模型中需要用到的被跟踪 <span class="math">\(N\)</span> 个指数的预期收益率 <span class="math">\(R_i\)</span> 以及指数之间的相关矩阵 <span class="math">\(\Sigma_i\)</span> . 理论细节可以从书 <a class="reference external" href="http://book.douban.com/subject/2799221/">Quantitative Equity Portfolio Management (证券组合定量管理)</a> 中获得.  这里我给出我们用到的那一小部分.</p>
+<p>我们用向量 <span class="math">\(\vec{R}_i \in \mathcal{R}^N\)</span> 表示我们需要跟踪的指数, 指数包含了 <span class="math">\(m\)</span> 只个股以权重矩阵 <span class="math">\(W\in \mathcal{R}^{m\times N}\)</span> 组合而成.
+则 <span class="math">\(R_i=W^T \vec{R}\)</span> . 这里 <span class="math">\(\vec{R}\in \mathcal{R}^m\)</span> 为各个股的预期收益.</p>
+<p>我们假设各个股的预期收益 <span class="math">\(\vec{R}\)</span> 被 <span class="math">\(n\)</span> 个因子所决定. <span class="math">\(\vec{R}=\vec{x}^T\beta + \vec{\epsilon}\)</span> 得到.
+这里 <span class="math">\(\beta\in \mathcal{R^{n\times m}}\)</span> 表示因子矩阵, 而 <span class="math">\(\vec{x}\in \mathcal{R}^n\)</span> 表示相应的因子向量, <span class="math">\(\vec{\epsilon}\)</span> 表示一个服从正态分布的一个 <span class="math">\(N\)</span> 维随机变量.  <span class="math">\(\vec{\epsilon} \in N(0, \Sigma)\)</span> . <span class="math">\(\vec{x} \in N(\vec{\mu}, \Omega)\)</span> .
+<span class="math">\(\vec{\epsilon}\)</span> 与 <span class="math">\(\vec{x}\)</span> 之间相互独立.</p>
+<p>于是有 <span class="math">\(\Sigma_i=cov(R_i,R_i)=W^T\beta^T \Omega \beta W + W^T\Sigma W\)</span>.</p>
+<p>于是, 我们的QEPM模型可以以 <span class="math">\(W, \beta, \Sigma, \Omega, \vec{\mu}\)</span> 为输入, 得到输出 <span class="math">\(R_i\)</span> 与 <span class="math">\(\Sigma_i\)</span> .</p>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="model.html"
+                        title="previous chapter">分级基金A份定价问题</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="design.html"
+                        title="next chapter">模拟程序结构设计</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/QEPM.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="design.html" title="模拟程序结构设计"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="model.html" title="分级基金A份定价问题"
+             >previous</a> |</li>
+        <li><a href="index.html">分级A份Monte Carlo模拟定价C++实现 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 叶时炜.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>

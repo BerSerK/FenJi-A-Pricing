@@ -1,0 +1,254 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>模拟程序结构设计 &mdash; 分级A份Monte Carlo模拟定价C++实现 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/MathJax/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="分级A份Monte Carlo模拟定价C++实现 0.1 documentation" href="index.html" />
+    <link rel="next" title="算法" href="algorithm.html" />
+    <link rel="prev" title="QEPM模型" href="QEPM.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="algorithm.html" title="算法"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="QEPM.html" title="QEPM模型"
+             accesskey="P">previous</a> |</li>
+        <li><a href="index.html">分级A份Monte Carlo模拟定价C++实现 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="id1">
+<h1>模拟程序结构设计<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="monte-carlo">
+<h2>Monte Carlo模拟程序设计<a class="headerlink" href="#monte-carlo" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id2">
+<h3>主控制类设计<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>数据：</p>
+<ol class="arabic simple">
+<li>分级A数列, 保存一系列分级A, 以及其模拟结果数据. 具体实现是一个指针数列, 可以用上C++的多态性;</li>
+<li>分级A之间的相关性矩阵 <span class="math">\(\Sigma_i\)</span> ;</li>
+<li>模拟次数等系统参数;</li>
+</ol>
+<p>函数:</p>
+<ol class="arabic simple" start="0">
+<li>参数设置函数, 包括从配置文件读取参数, 读取 <span class="math">\(\Sigma_i\)</span> <span class="math">\(R_i\)</span> .</li>
+<li>迭代模拟路径的函数, 每迭代一步我们需要:</li>
+</ol>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li>生成满足条件的随机向量传给各个分级A对象;</li>
+<li>执行各个分级A的迭代步;</li>
+</ol>
+</div></blockquote>
+<ol class="arabic simple" start="2">
+<li>计算总体统计量的函数:</li>
+</ol>
+<blockquote>
+<div><ol class="loweralpha simple">
+<li>每个基金的平均第一次下折日;</li>
+<li>第一向上折算日频数分布;</li>
+<li>第一向下折算日频数分布;</li>
+<li>折算日截尾均值;</li>
+<li>折算日25%分位数, 50%分位数, 75%分位数, 与90%分位数;</li>
+<li>A基金优先份额久期分析;</li>
+<li>计算隐含收益率;</li>
+</ol>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li>以合适的格式输出函数, 输出各种数据, 以及统计信息。可以利用MATLAB, R, Python等软件二次处理这些数据, 画图展示.</li>
+</ol>
+</div>
+<div class="section" id="a">
+<h3>分级A虚类设计<a class="headerlink" href="#a" title="Permalink to this headline">¶</a></h3>
+<p>考虑到不同的分级A有不同的上下折算规则, 还有不同的定期结算日期.
+需要重载这些功能, 我们设计一个虚类做一个做分级A的类模板.</p>
+<div class="section" id="id3">
+<h4>数据与参数<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h4>
+<p>模型参数：</p>
+<ol class="arabic simple">
+<li>母基金净值</li>
+<li>母基金预期收益率</li>
+<li>基金各项费用</li>
+<li>母基金单位净值收益率的年华波动率</li>
+<li>进取份额的杠杆倍数</li>
+<li>A份的约定收益率</li>
+</ol>
+<p>数据需要创建一个类来保存一次模拟路径中需要保留下来的数据.
+模拟路径数据类, 包含以下数据:</p>
+<ol class="arabic simple">
+<li>上折日期数列.</li>
+<li>下折日期数列.</li>
+<li>各种统计信息(TODO: need more detail)</li>
+</ol>
+<p>对于一个虚类中需要保存以下数据:</p>
+<ol class="arabic simple">
+<li>模拟路径数列</li>
+<li>模拟过程中临时保存的母基金价格, A份和B份价格.</li>
+<li>理论价格</li>
+<li>各种统计信息(TODO: need more detail)</li>
+</ol>
+</div>
+<div class="section" id="id4">
+<h4>函数与功能<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h4>
+<p>固定函数, 不需重载, 重复使用:</p>
+<ol class="arabic simple">
+<li>向前迭代模拟路径: 向前迭代一步模拟路径并保存相关数据.</li>
+<li>计算各种统计信息, 计算理论价格 (TODO: need more detail).</li>
+</ol>
+<p>虚函数, 供继承类根据具体规则重载:</p>
+<ol class="arabic simple">
+<li>上下折函数</li>
+<li>上下折条件</li>
+<li>定期折算函数</li>
+<li>多次下折后终止条件</li>
+</ol>
+</div>
+</div>
+</div>
+<div class="section" id="qepm">
+<h2>QEPM模拟程序设计<a class="headerlink" href="#qepm" title="Permalink to this headline">¶</a></h2>
+<p>只需要设计一个主类以以 <span class="math">\(W, \beta, \Sigma, \Omega, \vec{\mu}\)</span> 为输入, 得到输出 <span class="math">\(R_i\)</span> 与 <span class="math">\(\Sigma_i\)</span> .</p>
+<p>数据:</p>
+<ol class="arabic simple">
+<li>输入参数:<ol class="loweralpha">
+<li><span class="math">\(W\)</span> 指数权重矩阵;</li>
+<li><span class="math">\(\beta\)</span> 个股贝塔;</li>
+<li><span class="math">\(\Sigma\)</span> 个股间的相关矩阵;</li>
+<li><span class="math">\(\Omega\)</span> 各个因子间的相关矩阵;</li>
+<li><span class="math">\(\vec{\mu}\)</span> 各个因子的预期值;</li>
+<li>总模拟次数</li>
+</ol>
+</li>
+<li>输出:<ol class="loweralpha">
+<li><span class="math">\(R_i\)</span></li>
+<li><span class="math">\(\Sigma_i\)</span></li>
+</ol>
+</li>
+<li>辅助变量:<ol class="loweralpha">
+<li><span class="math">\(\vec{x}\in N(\vec{\mu}, \Omega)\)</span></li>
+<li><span class="math">\(\vec{\epsilon}\in N(0, 1)\)</span></li>
+</ol>
+</li>
+</ol>
+<p>函数:</p>
+<ol class="arabic simple">
+<li>配置函数, 从配置文件读取输入参数的函数;</li>
+<li>生成辅助变量    <span class="math">\(\vec{x}\in N(\vec{\mu}, \Omega)\)</span> 和 <span class="math">\(\vec{\epsilon}\in N(0, 1)\)</span> 的函数;</li>
+<li>计算输出变量的函数;</li>
+<li>输出计算结果的函数;</li>
+<li>总体控制函数, 调用上述函数完成计算.</li>
+</ol>
+</div>
+<div class="section" id="id5">
+<h2>总结<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<p>先运行QEPM的程序, 生成一系列满足条件的 <span class="math">\(R_i\)</span> 和 <span class="math">\(\Sigma_i\)</span>.
+然后再在Monte Carlo程序中读入相应 <span class="math">\(R_i\)</span> 和 <span class="math">\(\Sigma_i\)</span> 进行后续模拟.</p>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">模拟程序结构设计</a><ul>
+<li><a class="reference internal" href="#monte-carlo">Monte Carlo模拟程序设计</a><ul>
+<li><a class="reference internal" href="#id2">主控制类设计</a></li>
+<li><a class="reference internal" href="#a">分级A虚类设计</a><ul>
+<li><a class="reference internal" href="#id3">数据与参数</a></li>
+<li><a class="reference internal" href="#id4">函数与功能</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#qepm">QEPM模拟程序设计</a></li>
+<li><a class="reference internal" href="#id5">总结</a></li>
+</ul>
+</li>
+</ul>
+
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="QEPM.html"
+                        title="previous chapter">QEPM模型</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="algorithm.html"
+                        title="next chapter">算法</a></p>
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/design.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="algorithm.html" title="算法"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="QEPM.html" title="QEPM模型"
+             >previous</a> |</li>
+        <li><a href="index.html">分级A份Monte Carlo模拟定价C++实现 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 叶时炜.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.2.3.
+    </div>
+  </body>
+</html>
