@@ -12,7 +12,6 @@ Contents:
 
    ./README.rst
    ./model.rst
-   ./QEPM.rst
    ./design.rst
    ./algorithm.rst
 
