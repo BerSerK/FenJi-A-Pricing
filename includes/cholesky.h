@@ -11,12 +11,22 @@
 #ifndef __CHOLESKY_H__
 #define __CHOLESKY_H__
 
+/**
+ *  Object for Cholesky decomposition of a matrix A, and related functions. 
+ * 
+ */
 struct Cholesky{
-  //Object for Cholesky decomposition of a matrix A, and related functions. 
-  Int n;
-  MatDoub el; ///Stores the decomposition.
+  Int n; /**< Dimension of the matrix A. */
+  MatDoub el; /**< Stores the decomposition. */
+  
+  /** 
+   * Constructor. Given a positive-definite symmetric matrix a[0..n-1][0..n-1], construct and store its Cholesky decomposition, A D L 􏰩 LT .
+   * 
+   * @param a The matrix A.
+   * 
+   * @return 
+   */
   Cholesky(MatDoub_I &a) : n(a.nrows()), el(a) {
-    ///Constructor. Given a positive-definite symmetric matrix a[0..n-1][0..n-1], construct and store its Cholesky decomposition, A D L 􏰩 LT .
     Int i,j,k;
     VecDoub tmp;
     Doub sum;
@@ -33,8 +43,14 @@ struct Cholesky{
     }
     for (i=0;i<n;i++) for (j=0;j<i;j++) el[j][i] = 0.; 
   }
+  
+  /** 
+   * Solve the set of n linear equations A x = b, where a is a positive-definite symmetric matrix whose Cholesky decomposition has been stored. b[0..n-1] is input as the right-hand side vector. The solution vector is returned in x[0..n-1].
+   * 
+   * @param b righthand side.
+   * @param x the unknow.
+   */
   void solve(VecDoub_I &b, VecDoub_O &x) {
-    //Solve the set of n linear equations A􏰩x D b, where a is a positive-definite symmetric matrix whose Cholesky decomposition has been stored. b[0..n-1] is input as the right-hand side vector. The solution vector is returned in x[0..n-1].
     Int i,k;
     Doub sum;
     if (b.size() != n || x.size() != n) throw("bad lengths in Cholesky");
@@ -48,8 +64,14 @@ struct Cholesky{
     } 
   }
   
+  /** 
+   * Multiply L y = b, where L is the lower triangular matrix in the stored Cholesky decom- position. y[0..n-1] is input. The result is returned in b[0..n-1].
+   * 
+   * @param y input
+   * @param b result
+   */
   void elmult(VecDoub_I &y, VecDoub_O &b) {
-    //Multiply L 􏰩 y D b, where L is the lower triangular matrix in the stored Cholesky decom- position. y[0..n-1] is input. The result is returned in b[0..n-1].
+    
     Int i,j;
     if (b.size() != n || y.size() != n) throw("bad lengths"); 
     for (i=0;i<n;i++) {
@@ -57,8 +79,15 @@ struct Cholesky{
       for (j=0;j<=i;j++) b[i] += el[i][j]*y[j]; 
     }
   }
+
+  /** 
+   * Solve L y = b, where L is the lower triangular matrix in the stored Cholesky decomposi- tion. b[0..n-1] is input as the right-hand side vector. The solution vector is returned in y[0..n-1].
+   * 
+   * @param b input as the right-hand side vector.
+   * @param y the solution.
+   */
   void elsolve(VecDoub_I &b, VecDoub_O &y) {
-    //Solve L 􏰩 y D b, where L is the lower triangular matrix in the stored Cholesky decomposi- tion. b[0..n-1] is input as the right-hand side vector. The solution vector is returned in y[0..n-1].
+
     Int i,j;
     Doub sum;
     if (b.size() != n || y.size() != n) throw("bad lengths"); 
@@ -67,8 +96,14 @@ struct Cholesky{
       y[i] = sum/el[i][i];
     }
 }
+  
+  /** 
+   * Set ainv[0..n-1][0..n-1] to the matrix inverse of A, the matrix whose Cholesky decom- position has been stored.
+   * 
+   * @param ainv inverse of A.
+   */
   void inverse(MatDoub_O &ainv) {
-  //Set ainv[0..n-1][0..n-1] to the matrix inverse of A, the matrix whose Cholesky decom- position has been stored.
+  
   Int i,j,k;
   Doub sum;
   ainv.resize(n,n);
@@ -84,8 +119,14 @@ struct Cholesky{
       ainv[i][j] = ainv[j][i] = sum/el[i][i];
     } 
   }
+
+  /** 
+   * Return the logarithm of the determinant of A, the matrix whose Cholesky decomposition has been stored.
+   * 
+   * 
+   * @return logarithm of the determinant of A.
+   */
   Doub logdet() {
-    //Return the logarithm of the determinant of A, the matrix whose Cholesky decomposition has been stored.
     Doub sum = 0.;
     for (Int i=0; i<n; i++) sum += log(el[i][i]); return 2.*sum;
   } 

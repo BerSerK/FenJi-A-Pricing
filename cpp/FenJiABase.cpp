@@ -6,11 +6,11 @@ FJABase::FJABase() {
 FJABase::~FJABase() {
 }
 
-int FJABase::step_on() {
+int FJABase::StepOn(double U, double E) {
   return 0;
 }
 
-int FJABase::statistics() {
+int FJABase::Stats() {
   return 0;
 }
 

@@ -14,7 +14,6 @@
 
 int TestCov() {
   FJASimulator sim( "config.txt" );
-  //sim.Config
   double *buf = new double[ sim.FJALength ];
   std::ofstream fp("sample.txt");
   for ( int i = 0; i < 1000000; i ++ ) {
@@ -24,7 +23,6 @@ int TestCov() {
     }
     fp << std::endl;
   }
-
   return 0;
 }
 

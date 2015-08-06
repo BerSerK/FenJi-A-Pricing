@@ -20,8 +20,8 @@ Monte Carlo模拟程序设计
 
 3. 配置数据:
    
-   a. :math:`W\in \mathcal{R}^{m\times N}` 指数权重矩阵,
-   b. :math:`X\in \mathcal{R}^{m\times N}` 暴露矩阵,
+   a. :math:`W\in \mathcal{R}^{N\times m}` 指数权重矩阵,
+   b. :math:`X\in \mathcal{R}^{m\times n}` 暴露矩阵,
    c. :math:`\Sigma \in \mathcal{R}^{m\times m}` 对角矩阵, 模型中不可预测部分的相关矩阵,
    d. :math:`\Omega\in \mathcal{R}^{n\times n}` 因子回报 :math:`\vec{\beta}` 之间的相关矩阵,
    e. :math:`\vec{\mu}` 因子回报的预期收益, 为简单起见直接取 :math:`0`.

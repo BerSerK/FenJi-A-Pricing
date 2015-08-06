@@ -25,14 +25,14 @@
 
 .. index:: QEPM (Quantitative Equity Portfolio Management)
 
-QEPM模型
+因子模型
 ----------------------------------------
 
-我们通过QEPM模型来模拟分级A模型中需要用到的被跟踪 :math:`N` 个指数的走势路径.
+我们通过因子模型来模拟分级A模型中需要用到的被跟踪 :math:`N` 个指数的走势路径.
 设各个指数的预期收益率为 :math:`R_I\in\mathcal{R}^N` 以及指数之间的相关矩阵 :math:`\Sigma_I\in\mathcal{R}^{N\times N}` . 理论细节可以从书 `Quantitative Equity Portfolio Management (证券组合定量管理) <http://book.douban.com/subject/2799221/>`_ 中获得.  这里我给出我们用到的那一小部分. 
 
-我们用向量 :math:`\vec{R}_I \in \mathcal{R}^N` 表示我们需要跟踪的指数. 假设总共有 :math:`m` 只个股, 目标指数以权重矩阵 :math:`W\in \mathcal{R}^{m\times N}` 组合而成. 
-则 :math:`R_I=W^T \vec{R}` . 这里 :math:`\vec{R}\in \mathcal{R}^m` 为各个股的预期收益. 
+我们用向量 :math:`\vec{R}_I \in \mathcal{R}^N` 表示我们需要跟踪的指数. 假设总共有 :math:`m` 只个股, 目标指数以权重矩阵 :math:`W\in \mathcal{R}^{N\times m}` 组合而成. 
+则 :math:`R_I=W \vec{R}` . 这里 :math:`\vec{R}\in \mathcal{R}^m` 为各个股的预期收益. 
 
 我们假设各个股的预期收益 :math:`\vec{R}` 被 :math:`n` 个因子所决定. 
 
@@ -46,13 +46,23 @@ QEPM模型
 
 .. math::
    
-   \vec{R}_I = W^T X\vec{\beta} + W^T \vec{\epsilon}
+   \vec{R}_I = W X\vec{\beta} + W \vec{\epsilon} = W X \vec{\mu} + W X \vec{\beta_0} + W\vec{\epsilon}
+
+这里 :math:`\vec{\beta_0}\in N(0, \Omega)`. 为了后面使用方便, 取 :math:`\vec{U}=W X\vec{\mu}`, :math:`\vec{E}=W X \vec{\beta_0} + W\vec{\epsilon}`, 于是有:
+
+.. math::
+
+   \vec{R}_I = \vec{U} + \vec{E}
 
 .. math::
    
-   \Sigma_I=cov(\vec{R}_I,\vec{R}_I)=W^T(X \Omega X^T + \Sigma )W
+   \Sigma_I=cov(\vec{R}_I,\vec{R}_I)=W(X \Omega X^T + \Sigma )W^T
 
-于是, 我们的QEPM模型以 :math:`W, X, \Sigma, \Omega, \vec{\mu}` 为输入. 为了简单起见 :math:`\vec{\mu}` 可能直接取成 :math:`0`.
+.. math::
+
+   \vec{E}\in N(0, \Sigma_I)
+
+于是, 我们的因子模型以 :math:`W, X, \Sigma, \Omega, \vec{\mu}` 为输入. 为了简单起见 :math:`\vec{\mu}` 可能直接取成 :math:`0`.
 
 
 模拟步骤
@@ -64,14 +74,15 @@ QEPM模型
 2. 基于母基金单位净值随机游走的假设, 通过下式模拟出 :math:`N` 条母基金净值未来走势路径:
 
 .. math::
-   S_t^i = S_{t-1}^{i}e^{(- \delta - \frac{1}{2} \sigma_i^2) \Delta t + \sqrt{\Delta t} \vec{R}_I(i)}
+   S_t^i = S_{t-1}^{i}e^{(U(i)- \delta - \frac{1}{2} \sigma_i^2) \Delta t + \sqrt{\Delta t} \vec{E}(i)}
 
 其中, 
 
 - :math:`S_t^i` 为 :math:`t-1` 日的第 :math:`i` 个基金的母基金净值;
+- :math:`vec{U}(i)` 为 :math:`\vec{U}` 的第 :math:`i` 个分量;
 - :math:`\delta` 为基金各项费用;
-- :math:`\sigma_i` 为母基金单位净值收益率的年华波动率, :math:`\sigma_i=\Sigma_I(i,i)`;
-- :math:`\vec{R}_I(i)` 为 :math:`\vec{R}_I` 的第 :math:`i` 个分量;
+- :math:`\sigma_i` 为母基金单位净值收益率的年化波动率, :math:`\sigma_i^2=\Sigma_I(i,i)`;
+- :math:`\vec{E}(i)` 为 :math:`\vec{E}` 的第 :math:`i` 个分量;
 - :math:`\Delta t` 取 :math:`\frac{1}{252}` 假设一年实际交易天数为 :math:`252` 日. 
 
 3. 对于每一条路径, 根据母基金净值计算每一个交易日的优先份额净值与进取份额净值. 

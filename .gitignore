@@ -8,3 +8,4 @@ bin/*
 #ignore built docs
 doc/_build/*
 doc/**/*.tar.gz
+doc/doxygen/*
