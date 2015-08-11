@@ -6,7 +6,8 @@ FJABase::FJABase() {
 FJABase::~FJABase() {
 }
 
-int FJABase::StepOn(double U, double E) {
+int FJABase::StepOn( double E) {
+  
   return 0;
 }
 

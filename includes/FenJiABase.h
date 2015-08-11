@@ -12,12 +12,38 @@
 #define __FENJIABASE_H__
 
 #include <vector>
+#include <string>
+
+#include "nr3.h"
 
 class FJAData{
 public:
   std::vector<double> up_dates; /**< 不定期上折日期数列. 以年为单位. */
   std::vector<double> down_dates; /**< 不定期下折日期数列. 以年为单位. */
   std::vector<double> currency; /**< 现金流. */
+};
+
+class Stock{
+public:
+  Stock(std::string idd, double sk, size_t a_id):id( idd ),
+						    srisk( sk ),
+						    array_id( a_id ) {;}
+  std::string id;
+  double srisk;
+  size_t array_id;
+  std::vector<double>* FactorExposure;
+  inline void print() {
+    std::cout << id <<":" << srisk << ":" << array_id << std::endl;
+  }
+};
+
+class StockIndex{
+public:
+  std::string id;
+  double U; /**< 预期收益. */
+  double E; /**< 符合正态分布的随机变量, 有主控制类生成传入. */
+  double sigma2; /**< 年华波动率的平方. */
+  std::vector<double>* IndexWeight;
 };
 
 class FJABase{
@@ -27,7 +53,7 @@ public:
    * 构造函数.
    * 
    */
-  FJABase();
+  FJABase(std::string iid):id(iid) {;};
 
   virtual ~FJABase();
 
@@ -98,13 +124,10 @@ public:
    * @return 是否终止模拟, 1 是, 0 否.
    */
   virtual int terminate_condition() {return 0;};
-  
-  std::vector< double> IndexWeight; /**< 母基金所跟踪的指数的权重. */
+
+  StockIndex* TrackingIndex; /**< 母基金所跟踪的指数. */
   double NAV_m_init; /**< 母基金初始净值. */
   double fee; /**< 费用. */
-  double U; /**< 预期收益. */
-  double E; /**< 符合正态分布的随机变量, 有主控制类生成传入. */
-  double sigma2; /**< 年华波动率的平方. */
   double leverage_ratio; /**< 进取份额的杠杆倍数. */
   double fix_profit; /**< A份额的约定收益率. */
   
@@ -112,6 +135,7 @@ public:
   double NAV_A;	/**< A份净值. */
   double NAV_B;	/**< B份净值. */
   std::vector<FJAData> data; /**< 各次模拟数据. */
+  std::string id;		/**< 基金编号 */
 };
 
 #endif

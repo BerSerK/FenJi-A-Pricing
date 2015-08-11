@@ -11,14 +11,15 @@
 #ifndef __FENJIA_H__
 #define __FENJIA_H__
 
+#include <vector>
+#include <map>
+#include <string>
+
+#include "csvrow.h"
 #include "FenJiABase.h"
 #include "nr3.h"
 #include "cholesky.h"
 #include "Random.h"
-
-#include <vector>
-#include <string>
-
 
 /**
  * 总控制类, 控制整个模拟流程.
@@ -26,13 +27,12 @@
  */
 class FJASimulator{
 public:
-
   /** 
    * 以配置文件名构造函数.
    * 
    * @param config_file 配置文件名.
    */
-  FJASimulator( std::string config_file ); 
+   FJASimulator( std::string config_file ); 
 
   /** 
    * 读取配置参数和输入数组. 在构造函数中被调用.
@@ -43,6 +43,14 @@ public:
    */
   int Config( std::string config_file ); 
 
+  /** 
+   * 展示配置参数.
+   * 
+   * 
+   * @return 运行状况.
+   */
+  int DisplayConfig();
+  
   /** 
    * 读取保存基金参数的文件, 将在Config函数中被调用.
    * 
@@ -143,28 +151,40 @@ public:
    * 
    * @return 指向新建的分级A对象的指针.
    */
-  FJABase* NewFJA( std::string FJA_name );
+  FJABase* NewFJA( std::string FJA_name, std::string iid);
+  
+  std::vector<Stock> StockArray; /**<  股票数组. */
+  std::map<std::string, size_t> StockMap; /**< 股票代码映射到股票对象的字典. */
+  std::vector<StockIndex> IndexArray;
+  std::map<std::string, StockIndex*> IndexMap;
 
-  std::vector< std::vector< double> > IndexWeight; /**<  分级基金所跟踪的指数的权重矩阵. */
-  std::vector< std::vector< double> > FactorExposure; /**< 暴露矩阵. */
-  std::vector< double> Sigma; /**< 模型中不可测部分的相关矩阵, 对角矩阵. */
+  std::vector< std::string> FactorNames;
+  std::vector< std::vector<double> > IndexWeight; /**<  分级基金所跟踪的指数的权重矩阵. */
+  std::vector< std::vector<double> > FactorExposure; /**< 暴露矩阵. */
   std::vector< std::vector< double> > Omega; /**< 因子回报之间的相关矩阵. */
   Cholesky *chol;  /**< \f$\Sigma_I=W(X \Omega X^T + \Sigma)W^T \f$ 的Cholesky分解\f$L\f$, 用于生成协方差矩阵为 \f$\Sigma_I\f$的正态分布.  */
 
   std::vector< double> dSigma_I; /**< \f$\Sigma_I 的对角部分\f$ */
   std::vector< double> mu; /**< 因子回报的预期值, 为了简单起见(暂时)取0. */
   std::vector< NormalDistribution> ND; /**< 正态分布随机数生成器. */
-  
 
-  int SimulationCount; /**< 模拟次数. */
-  int StockNumber; /**< 个股的总数. */
-  int FactorNumber; /**< 因子个数. */
+  size_t SimulationCount; /**< 模拟次数. */
+  size_t StockNumber; /**< 个股的总数. */
+  size_t FactorNumber; /**< 因子个数. */
+  size_t IndexNumber;
   std::string Tag; /**< 本次模拟的标签, 用于输出结果文件的命名等, 以示区分. */
   std::vector<FJABase*> FJAarray; /**< 分级A数列. */
   int FJALength; /**< Length of FJAarray, just for convinience. */
-private:
+
   VecDoub vec;	/**< 用于生成随机数的临时变量. */
   VecDoub NormalE;	/**< 符合正态分布的随机向量, 每次迭代重新生成. */
+private:
+
+  std::string FJA_file;
+  std::string IW_file;
+  std::string FE_file;
+  std::string Sigma_file;
+  std::string Omega_file;
 };
 
 /**
@@ -173,6 +193,7 @@ private:
  */
 class CommonA : public FJABase{ 
 public:
+  CommonA(std::string id):FJABase(id) {;}
   virtual int up_condition();
   virtual int up_conversion();
   virtual int down_condition();

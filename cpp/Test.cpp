@@ -1,25 +1,27 @@
-#include "timer.h"
-#include "Random.h"
-
-#include "nr3.h"
-#include "cholesky.h"
-
-#include "FenJiA.h"
-
 #include <iostream>
 #include <random>
 #include <fstream>
 
+#include "FenJiA.h"
+#include "timer.h"
+#include "Random.h"
+#include "nr3.h"
+#include "cholesky.h"
+
+
 #define N  10
 
 int TestCov() {
-  FJASimulator sim( "config.txt" );
-  double *buf = new double[ sim.FJALength ];
+// std::string sss("-0.909318451910229");
+// double ddd = std::stod(sss);
+// std::cout << ddd << std::endl;
+
+  FJASimulator sim( "config/config.txt" );
   std::ofstream fp("sample.txt");
   for ( int i = 0; i < 1000000; i ++ ) {
-    sim.GenerateRandomNumber(buf);
-    for ( int j = 0; j < sim.FJALength; j ++ ) {
-      fp << buf[j] << "\t";
+    sim.GenerateRandomNumber();
+    for ( int j = 0; j < sim.IndexNumber; j ++ ) {
+      fp << sim.NormalE[j] << "\t";
     }
     fp << std::endl;
   }
