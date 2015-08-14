@@ -10,4 +10,5 @@ doc/_build/*
 doc/**/*.tar.gz
 doc/doxygen/*
 
+data/*
 config*

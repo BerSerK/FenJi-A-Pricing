@@ -79,7 +79,7 @@
 其中, 
 
 - :math:`S_t^i` 为 :math:`t-1` 日的第 :math:`i` 个基金的母基金净值;
-- :math:`vec{U}(i)` 为 :math:`\vec{U}` 的第 :math:`i` 个分量;
+- :math:`\vec{U}(i)` 为 :math:`\vec{U}` 的第 :math:`i` 个分量;
 - :math:`\delta` 为基金各项费用;
 - :math:`\sigma_i` 为母基金单位净值收益率的年化波动率, :math:`\sigma_i^2=\Sigma_I(i,i)`;
 - :math:`\vec{E}(i)` 为 :math:`\vec{E}` 的第 :math:`i` 个分量;

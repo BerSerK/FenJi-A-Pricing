@@ -1,22 +1,14 @@
-sample = load('sample.txt');
-m_sample = mean(sample);
-S = size(sample);
-L = S(1);
-for i = L
-    for j = 1:10
-        sample(i, j) = sample(i, j) - m_sample(j);
-    end
-end
+Omega = csvread('config/cov_20150727.csv', 1, 1);
+X = csvread('config/expo.csv',1,1);
+Sigma =diag( csvread('config/srisk.csv', 1,1));
+W = csvread('config/indexWgt.csv', 1,1)';
+%sum(W')
+cov_s = W*Sigma*W'
+cov_b = W * (X * Omega * X' + Sigma) *W'
 
-for i = 1:10
-    for j = 1:10
-        cov(i, j) = 0;
-        for k = 1:L
-            cov(i, j) = cov(i, j) + sample(k, i) * sample(k, j);
-        end
-        cov(i, j) = cov(i, j)/L;
-    end
-end
-cov;
-cov_b = load('orth_mat.txt');
-cov - cov_b
+sample = load('sample.txt');
+cov_s = cov( sample );
+
+norm(cov_b - cov_s)/norm(cov_b)
+
+

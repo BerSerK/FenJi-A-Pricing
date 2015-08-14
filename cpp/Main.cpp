@@ -6,6 +6,7 @@
 #include "FenJiA.h"
 
 int main() {
-  FJASimulator sim("config.txt");
+  FJASimulator sim("config/config.txt");
+  sim.Run();
   return 0;
 }
