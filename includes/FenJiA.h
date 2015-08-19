@@ -58,6 +58,14 @@ public:
    * @return 运行状况.
    */
   int DisplayConfig();
+
+  /** 
+   * 展示配置参数.
+   * 
+   * 
+   * @return 运行状况.
+   */
+  int DisplayConfig(std::ostream& str);
   
   /** 
    * 读取保存基金参数的文件, 将在Config函数中被调用.
@@ -176,6 +184,10 @@ public:
    * @return 指向新建的分级A对象的指针.
    */
   FJABase* NewFJA( std::map<std::string, std::string> ValueMap, FJASimulator* FSP);
+
+  inline double TimeFromStart() {
+    return SimulateTime - startDateofYear;
+  }
   
   std::vector<Stock> StockArray; /**<  股票数组. */
   std::map<std::string, size_t> StockMap; /**< 股票代码映射到股票对象的字典. */
@@ -197,6 +209,8 @@ public:
   size_t Count;
   double SimulationLength;	/**< 模拟最长时间. 以年为单位.*/
   double StopRatio;		/**< A份额份数下限. 低于此数不继续模拟. */
+  double DiscountRate;		/**< 折现率. */
+  double FixRate;		/**< 定存利率. */
   double TimeDelta;		/**< 模拟步长, 日频1.0/252, 周频取 1.0/50 */
   double sqrtTimeDelta;		/**< \f$ \sqrt{TimeDelta} \f$ */
   boost::gregorian::date startDate; /**<  模拟开始日期. */

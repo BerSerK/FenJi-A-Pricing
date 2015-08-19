@@ -6,7 +6,6 @@
 
 #include "FenJiA.h"
 
-
 std::istream& operator>>(std::istream& str, CSVRow& data) {
   data.readNextRow(str);
   return str;
@@ -38,8 +37,16 @@ int FJASimulator::Config(std::string config_file ) {
 
     if ( feature == "SimulationNumber" ) {
       Cfile >> SimulationNumber;
-    }else if ( feature == "SimulationLength" ) {
+    } else if ( feature == "SimulationLength" ) {
       Cfile >> SimulationLength;
+    } else if ( feature == "StopRatio" ) {
+      Cfile >> StopRatio;
+    } else if ( feature == "DiscountRate" ) {
+      Cfile >> DiscountRate;
+      DiscountRate *= 0.01;
+    } else if ( feature == "FixRate" ) {
+      Cfile >> FixRate;
+      FixRate *= 0.01;
     } else if ( feature == "Tag" ) {
       Cfile >> Tag; 
     } else if ( feature == "Date" ) {
@@ -90,56 +97,61 @@ int FJASimulator::Config(std::string config_file ) {
   return 0;
 }
 
-int FJASimulator::DisplayConfig( ) {
-  std::cout << "<=============================";
-  std::cout << " CONFIG ";
-  std::cout << "=============================>\n";
+int FJASimulator::DisplayConfig() {
+  DisplayConfig( std::cout );
+  return 0;
+}
 
-  std::cout << std::setw(30) << std::left << "PID " 
+int FJASimulator::DisplayConfig(std::ostream& str) {
+  str << "<=============================";
+  str << " CONFIG ";
+  str << "=============================>\n";
+
+  str << std::setw(30) << std::left << "PID " 
 	    << std::left<< getpid() << std::endl;
   
-  std::cout << std::setw(30) << std::left << "Number of Path" 
+  str << std::setw(30) << std::left << "Number of Path" 
 	    << std::left<< SimulationNumber << std::endl;
 
-  std::cout << std::setw(30) << std::left << "SimulationLength(year) " 
+  str << std::setw(30) << std::left << "SimulationLength(year) " 
 	    << std::left<< SimulationLength << std::endl;
 
-  std::cout << std::setw(30) << std::left << "StockNumber " 
+  str << std::setw(30) << std::left << "StockNumber " 
 	    << std::left<< StockNumber << std::endl;
 
-  std::cout << std::setw(30) << std::left << "FactorNumber " 
+  str << std::setw(30) << std::left << "FactorNumber " 
 	    << std::left<< FactorNumber << std::endl;
 
-  std::cout << std::setw(30) << std::left << "IndexNumber " 
+  str << std::setw(30) << std::left << "IndexNumber " 
 	    << std::left<< IndexNumber << std::endl;
 
-  std::cout << std::setw(30) << std::left << "FundNumber " 
+  str << std::setw(30) << std::left << "FundNumber " 
 	    << std::left<< FJALength << std::endl;
 
-  std::cout << std::setw(30) << std::left << "Tag " 
+  str << std::setw(30) << std::left << "Tag " 
  	    << std::left<< Tag << std::endl;
 
-  std::cout << std::setw(30) << std::left << "StartDate " 
+  str << std::setw(30) << std::left << "StartDate " 
  	    << std::left<< startDate<<" "<<startDateofYear << std::endl;
 
-  std::cout << std::setw(30) << std::left << "FJA file " 
+  str << std::setw(30) << std::left << "FJA file " 
  	    << std::left<< FJA_file << std::endl;
 
-  std::cout << std::setw(30) << std::left << "IndexWeightFile " 
+  str << std::setw(30) << std::left << "IndexWeightFile " 
  	    << std::left<< IW_file << std::endl;
 
-  std::cout << std::setw(30) << std::left << "FactorExposureFile "
+  str << std::setw(30) << std::left << "FactorExposureFile "
  	    << std::left<< FE_file << std::endl;
 
-  std::cout << std::setw(30) << std::left << "SigmaFile " 
+  str << std::setw(30) << std::left << "SigmaFile " 
  	    << std::left<< Sigma_file << std::endl;
 
-  std::cout << std::setw(30) << std::left << "OmegaFile " 
+  str << std::setw(30) << std::left << "OmegaFile " 
  	    << std::left<< Omega_file << std::endl;
   
-  std::cout << "<=============================";
-  std::cout << "   END  ";
-  std::cout << "=============================>\n";
+  str << "<=============================";
+  str << "   END  ";
+  str << "=============================>\n";
 
   return 0;
 }
@@ -281,11 +293,11 @@ int FJASimulator::ReadFactorExposure( std::string FE_file ) {
     std::vector< double> buf( FactorNumber);
     FactorExposure.push_back( buf );
   }
-
+  
   while ( InFile.good() ) {
     InFile >> row;
     size_t k = StockMap[ row[0] ];
-    //std::cout << k << ": " << row[0] << std::endl;
+    //    std::cout << k << ": " << row[0] << std::endl;
     StockArray[k].FactorExposure = &FactorExposure[ k ];
     for ( size_t i = 0; i < FactorNumber; i ++ ) {
       FactorExposure[k][i] = std::stod( row[i + 1]);
@@ -363,6 +375,7 @@ int FJASimulator::ReadFJA( std::string FJA_file ) {
   }
   INfile >> feature;
   std::map<std::string, std::string> ValueMap;
+  //feature.print();
   while ( INfile.good() ) {
     INfile >> value;
     if (value.size() == 0) continue;
@@ -374,21 +387,28 @@ int FJASimulator::ReadFJA( std::string FJA_file ) {
     FJAarray.push_back( FJAbaseP ); 
   }
   FJALength = FJAarray.size( );
+  if (FJALength == 0) {
+    std::cerr << "Something wrong with the FJA file." << std::endl;
+    return 1;
+  }
   return 0;
 }
 
 FJABase* FJASimulator::NewFJA( std::map<std::string, std::string> ValueMap, FJASimulator* FSP) {
-  if ( IndexMap.find( ValueMap["index"] )
+  if ( IndexMap.find( ValueMap["symbolIndex"] )
        == IndexMap.end() ) {
     std::cerr << "Wrong tracking index id:" 
-	      << ValueMap["index"] << std::endl;
+	      << ValueMap["symbolIndex"] << std::endl;
     return NULL;
   }
-
-  if ( ValueMap["AType"] == "common" ) {
+  // for ( std::map<std::string, std::string>::iterator it = ValueMap.begin();
+  // 	it != ValueMap.end(); it ++ ) {
+  //   std::cout << it -> first << ":" << it -> second <<"\n";
+  // }
+  if ( ValueMap["type"] == "1" ) {
     return new CommonA( ValueMap, FSP);
   } else {
-    std::cerr << "不存在分级A类别: " << ValueMap["AType"] << std::endl;
+    std::cerr << "不存在分级A类别: " << ValueMap["type"] << std::endl;
     return NULL;
   }
 }
@@ -429,22 +449,18 @@ int FJASimulator::Simulate() {
     for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
       (*FJAit) -> Initialize();
     }
-    while ( SimulateTime <= SimulationLength + startDateofYear) {
+    while ( TimeFromStart() <= SimulationLength) {
       GenerateRandomNumber();
+      SimulateTime += TimeDelta;
       for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
 	(*FJAit) -> StepOn();
       }
-      SimulateTime += TimeDelta;
     }
     if ( Count <= 10 ) {
       for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
 	(*FJAit) -> OutputPath();
       }
     }
-  }
-  
-  for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
-    (*FJAit) -> Stats();
   }
   
   return 0;
@@ -500,9 +516,19 @@ int FJASimulator::OutputResults() {
 int FJASimulator::Output() {
   
   std::cout << "Writing Data to disk.";
+
+  char filename[100];
+  sprintf(filename, "data/%s/conf.txt",
+	  Tag.c_str());
+  std::ofstream fp(filename);
+  DisplayConfig(fp); fp.close();
+
+  std::cout << ".";
   OutputCov();
+
   std::cout << ".";
   OutputResults();
+  
   std::cout << ".\n";
   
   return 0;

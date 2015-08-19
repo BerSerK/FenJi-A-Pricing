@@ -9,6 +9,7 @@
 #include <vector>
 #include <string>
 
+
 class CSVRow
 {
 public:
@@ -21,7 +22,7 @@ public:
     return m_data.size();
   }
   std::string trim(const std::string& str,
-                 const std::string& whitespace = " \t\n\"\'\r")
+		   const std::string& whitespace = " \t\n\"\'\r")
   {
     const auto strBegin = str.find_first_not_of(whitespace);
     if (strBegin == std::string::npos)

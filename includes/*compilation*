@@ -1,0 +1,31 @@
+-*- mode: compilation; default-directory: "~/github/FenJiADingJia/includes/" -*-
+Compilation started at Tue Aug 18 17:33:24
+
+make -k 
+make -C ../
+g++-mp-4.9 -shared -fPIC -c -g -Wall -Wextra -std=c++11 -o lib/libFenJiABase.so cpp/FenJiABase.cpp -lm -L/usr/local/lib -lboost_date_time -lboost_filesystem -lboost_system -lboost_timer -lQuantLib -I./includes -I/usr/local/include 
+In file included from ./includes/FenJiA.h:22:0,
+                 from cpp/FenJiABase.cpp:2:
+./includes/FenJiABase.h: In member function 'double FJAData::operator()(const double&) const':
+./includes/FenJiABase.h:114:26: error: passing 'const FJAData' as 'this' argument of 'double FJAData::get_NPV(const double&)' discards qualifiers [-fpermissive]
+     return get_NPV( rate ) - NPV;
+                          ^
+In file included from /usr/local/include/boost/filesystem/path_traits.hpp:23:0,
+                 from /usr/local/include/boost/filesystem/path.hpp:25,
+                 from /usr/local/include/boost/filesystem.hpp:16,
+                 from cpp/FenJiABase.cpp:1:
+/usr/local/include/boost/system/error_code.hpp: At global scope:
+/usr/local/include/boost/system/error_code.hpp:221:36: warning: 'boost::system::posix_category' defined but not used [-Wunused-variable]
+     static const error_category &  posix_category = generic_category();
+                                    ^
+/usr/local/include/boost/system/error_code.hpp:222:36: warning: 'boost::system::errno_ecat' defined but not used [-Wunused-variable]
+     static const error_category &  errno_ecat     = generic_category();
+                                    ^
+/usr/local/include/boost/system/error_code.hpp:223:36: warning: 'boost::system::native_ecat' defined but not used [-Wunused-variable]
+     static const error_category &  native_ecat    = system_category();
+                                    ^
+make[1]: *** [lib/libFenJiABase.so] Error 1
+make[1]: Target `all' not remade because of errors.
+make: *** [all] Error 2
+
+Compilation exited abnormally with code 2 at Tue Aug 18 17:33:26

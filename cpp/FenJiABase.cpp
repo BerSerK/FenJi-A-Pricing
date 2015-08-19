@@ -1,26 +1,81 @@
 #include <boost/filesystem.hpp>
+#include <boost/progress.hpp>
+#include <ql/math/solvers1d/newton.hpp>
+
 #include "FenJiA.h"
 #include "FenJiABase.h"
 
+size_t FJAData::MAX_UP_LENGTH = 0;
+size_t FJAData::MAX_DOWN_LENGTH = 0;
+size_t FJAData::MAX_CUR_LENGTH = 0;
+
+std::ostream& operator<<(std::ostream& fp, FJAData&data) {
+    fp << "up dates,";
+    for ( std::vector<double>::iterator Dit = data.up_dates.begin();
+	  Dit != data.up_dates.end(); Dit ++ ) {
+      fp << *Dit;
+      if ( Dit != data.up_dates.end() -1 ) fp << ",";
+    }
+    fp << "\n";
+    
+    fp << "down dates,";
+    for ( std::vector<double>::iterator Dit = data.down_dates.begin();
+	  Dit != data.down_dates.end(); Dit ++ ) {
+      fp << *Dit;
+      if ( Dit != data.down_dates.end() -1 ) fp << ",";
+    }
+    fp << "\n";
+    fp << "currency dates,";
+    for ( std::vector<std::pair<double, double> >::iterator Dit = data.currency.begin();
+	  Dit != data.currency.end(); Dit ++ ) {
+      fp << (*Dit).first ;
+      if ( Dit != data.currency.end() -1 ) fp << ",";
+    }
+    fp << "\n";
+    fp << "currency value,";
+    for ( std::vector<std::pair<double, double> >::iterator Dit = data.currency.begin();
+	  Dit != data.currency.end(); Dit ++ ) {
+      fp << (*Dit).second;
+      if ( Dit != data.currency.end() -1 ) fp << ",";
+    }
+    fp << "\n";
+  return fp;
+}   
+
 FJABase::FJABase( std::map<std::string, std::string> ValueMap, FJASimulator* FSP)
-  :id(ValueMap["iid"]),
-   NAV_m_init( std::stod( ValueMap[ "NAV_m" ]) ),
-   NAV_A_init( std::stod( ValueMap[ "NAV_A" ]) ),
-   fee( std::stod( ValueMap[ "fee" ] ) ),
-   redemption_fee( std::stod( ValueMap[ "redemption_fee" ] ) ),
-   leverage_ratio( std::stod( ValueMap[ "leverage_ratio" ])),
-   fix_profit( std::stod( ValueMap[ "fix_profit" ] ) ) {
+  :id(ValueMap["symbolA"]),
+   symbolM(ValueMap["symbolM"]),
+   NAV_m_init( std::stod( ValueMap[ "navM" ]) ),
+   NAV_A_init( std::stod( ValueMap[ "navA" ]) ),
+   price(std::stod( ValueMap[ "priceA" ]) ),
+   fix_profit( 0.01 * std::stod( ValueMap[ "rate" ] ) ),
+   ifrateFixed( std::stoi( ValueMap[ "ifRateFixed" ] ) ),
+   leverage_ratio( std::stod( ValueMap[ "leverage" ] ) ),
+   rateType( std::stoi( ValueMap[ "rateType" ] ) ),
+   fee( 0.01 * std::stod( ValueMap[ "fee" ] ) ),
+   up_triger(std::stod( ValueMap[ "up" ]) ),
+   down_triger(std::stod( ValueMap[ "down" ]) ),
+	  redemption_fee( 0.01 * std::stod( ValueMap[ "redemption_fee" ] ) ),
+	  expiry(1e10) {
+
   if ( leverage_ratio < 1 ) {
     throw("leverage_ratio should be greater than 1.");
   }
+
   Simulator = FSP;
-  TrackingIndex = FSP -> IndexMap[ ValueMap["index" ] ];
+  TrackingIndex = FSP -> IndexMap[ ValueMap[ "symbolIndex" ] ];
   sigma2 = FSP -> IndexArray[ TrackingIndex ].sigma2;
   updatem_fix = exp( (- fee - 0.5 * sigma2 ) * Simulator -> TimeDelta );
-  // std::cout <<"update m:" << updatem_fix 
-  // 	    <<"sigma2:" << sigma2
-  // 	    <<"TimeDelta:" << Simulator -> TimeDelta
-  // 	    << std::endl;
+  if ( ifrateFixed == 0 ) {
+    fix_profit += FSP -> FixRate;
+  }
+
+  if ( ValueMap["expiry"].size() > 0 ) {
+    boost::gregorian::date d( boost::gregorian::from_string( ValueMap["expiry"] ) );
+    boost::gregorian::date_period dp(FSP -> startDate, d);
+    expiry = (dp.length().days()/365.);
+    //std::cout << d <<"\t"<<dp<<"\t"<<dp.length()<<"\t"<<expiry<< std::endl;
+  }
 }
 
 FJABase::~FJABase() {
@@ -31,6 +86,7 @@ int FJABase::Initialize() {
 
   End = false;
   data_t.clear();
+  data_t.price = price;
 
   NAV_m = NAV_m_init;
   NAV_A = NAV_A_init;
@@ -49,10 +105,14 @@ int FJABase::Terminate() {
 }
 
 void FJABase::updatem() {
-
-  NAV_m = NAV_m * updatem_fix 
+  
+  double step_ratio = updatem_fix 
     * exp( Simulator -> sqrtTimeDelta 
 	   * Simulator -> NormalE[ TrackingIndex ] );
+  if (step_ratio > up_limit) step_ratio = up_limit;
+  if (step_ratio < low_limit) step_ratio = low_limit;
+  
+  NAV_m = NAV_m * step_ratio;
 }
 
 int FJABase::StepOn() {
@@ -73,6 +133,33 @@ int FJABase::StepOn() {
 }
 
 int FJABase::Stats() {
+  for ( std::vector<FJAData>::iterator it = data_set.begin();
+	it != data_set.end(); it ++ ) {
+    it -> NPV = it -> get_NPV( Simulator -> DiscountRate );
+    it -> getDuration(Simulator -> DiscountRate );
+  }
+
+  QuantLib::Real xAcu = 1e-8;
+  QuantLib::Newton solver;
+  solver.setMaxEvaluations(1e3);
+  //  std::cout << id << std::endl;
+
+  for ( std::vector<FJAData>::iterator it = data_set.begin();
+	it != data_set.end(); it ++ ) {
+    //std::cout << c++ << "\n";
+    // for ( size_t i = 0; i < it -> currency.size(); i ++ ) {
+    //   std::cout << it -> currency[i].first << ",";
+    // }
+    // std::cout << "\n";
+    // for ( size_t i = 0; i < it -> currency.size(); i ++ ) {
+    //   std::cout << it -> currency[i].second << ",";
+    // }
+
+    //    std::cout << price << "\n";
+    it -> IRR = solver.solve((*it), xAcu, 0.1, -0.9, 1e8);
+    //std::cout << "IRR:" << it -> IRR << std::endl;
+  }
+  
   return 0;
 }
 
@@ -99,6 +186,7 @@ int FJABase::OutputPath() {
     if (it != NAV_m_vec.end() - 1) fp << ",";
     else fp << "\n";
   }
+  fp << data_t;
   fp.close();
   return 0;
 }
@@ -109,39 +197,11 @@ int FJABase::OutputDataSet() {
   boost::filesystem::create_directories(filename);
   sprintf(filename, "data/%s/DataSet-%s.csv", 
 	  Simulator -> Tag.c_str(), id.c_str());
-  ofstream fp(filename); size_t c = 0;
+  ofstream fp(filename);
+  fp << FJAData::CSVhead() << "\n";
   for ( std::vector<FJAData>::iterator it = data_set.begin();
-	it != data_set.end(); it ++ ) { c ++;
-    fp << c <<"\n";
-
-    fp << "up dates,";
-    for ( std::vector<double>::iterator Dit = (*it).up_dates.begin();
-	  Dit != (*it).up_dates.end(); Dit ++ ) {
-      fp << *Dit;
-      if ( Dit != (*it).up_dates.end() -1 ) fp << ",";
-    }
-    fp << "\n";
-    
-    fp << "down dates,";
-    for ( std::vector<double>::iterator Dit = (*it).down_dates.begin();
-	  Dit != (*it).down_dates.end(); Dit ++ ) {
-      fp << *Dit;
-      if ( Dit != (*it).down_dates.end() -1 ) fp << ",";
-    }
-    fp << "\n";
-    fp << "currency dates,";
-    for ( std::vector<std::pair<double, double> >::iterator Dit = (*it).currency.begin();
-	  Dit != (*it).currency.end(); Dit ++ ) {
-      fp << (*Dit).first ;
-      if ( Dit != (*it).currency.end() -1 ) fp << ",";
-    }
-    fp << "\n";
-    fp << "currency value,";
-    for ( std::vector<std::pair<double, double> >::iterator Dit = (*it).currency.begin();
-	  Dit != (*it).currency.end(); Dit ++ ) {
-      fp << (*Dit).second;
-      if ( Dit != (*it).currency.end() -1 ) fp << ",";
-    }
+	it != data_set.end(); it ++ ) {
+    fp << it -> toCSVline();
     fp << "\n";
   }
   fp.close();
@@ -154,19 +214,24 @@ CommonA::CommonA( std::map<std::string, std::string> ValueMap,
 }
 
 void CommonA::updateA() {
-  NAV_A = NAV_A * pow(( 1 + fix_profit), Simulator -> TimeDelta);
+  if (rateType == 1) {
+    NAV_A = NAV_A * pow(( 1 + fix_profit), Simulator -> TimeDelta);
+  } else {
+    NAV_A = NAV_A + fix_profit * Simulator -> TimeDelta;
+  }
 }
 
 int CommonA::up_condition() {
-  return ( NAV_m >= 2.0 ); 
+  return ( NAV_m >= up_triger ); 
 }
 
 int CommonA::up_conversion() {
-  std::pair<double, double> cur( Simulator-> SimulateTime, 
-				 NUM_A * (NAV_A - 1) 
-				 * (1-redemption_fee ) );
-  data_t.currency.push_back( cur );
-  data_t.up_dates.push_back( Simulator -> SimulateTime );
+
+  data_t.add_currency( Simulator-> TimeFromStart(), 
+		       NUM_A * (NAV_A - 1) 
+		       * (1-redemption_fee ) );
+  
+  data_t.add_up_date( Simulator -> TimeFromStart());
   NAV_A = 1;
   NAV_B = 1;
   NAV_m = 1;
@@ -174,15 +239,14 @@ int CommonA::up_conversion() {
 }
 
 int CommonA::down_condition() {
-  return ( NAV_B <= 0.25 );
+  return ( NAV_B <= down_triger );
 }
 
 int CommonA::down_conversion() {
-  std::pair<double, double> cur( Simulator-> SimulateTime, 
+  data_t.add_currency( Simulator-> TimeFromStart(), 
 				 NUM_A * (NAV_A - NAV_B)
 				 * (1 - redemption_fee ) );
-  data_t.currency.push_back( cur );
-  data_t.down_dates.push_back( Simulator -> SimulateTime );
+  data_t.add_down_date( Simulator -> TimeFromStart() );
   NUM_A = NUM_A * NAV_B;
   NAV_A = 1;
   NAV_B = 1;
@@ -191,21 +255,25 @@ int CommonA::down_conversion() {
 }
 
 int CommonA::fix_conversion() {
-  std::pair<double, double> cur( Simulator-> SimulateTime, 
-				 NUM_A * (NAV_A - 1));
-  data_t.currency.push_back( cur );
+  data_t.add_currency( Simulator-> TimeFromStart(), 
+		       NUM_A * (NAV_A - 1) 
+		       * (1 - redemption_fee ) );
   NAV_A = 1;
   AB2m();
   return 0;
 }
 
 int CommonA::terminate_condition() {
-  if ( Simulator -> SimulateTime > 
-       Simulator -> SimulationLength ) return 1;
+  if ( Simulator -> TimeFromStart() > expiry ) {
+    data_t.add_currency( Simulator -> TimeFromStart(),
+			 NUM_A * NAV_A );
+    return 1;
+  }
+  if ( Simulator -> TimeFromStart() >
+       Simulator -> SimulationLength - Simulator->TimeDelta) return 1;
   if ( NUM_A < Simulator -> StopRatio ) {
-    std::pair<double, double> cur( Simulator-> SimulateTime, 
-				 NUM_A * (NAV_A - 1));
-    data_t.currency.push_back( cur );
+    /// 多次下折之后大部分资金已经赎回, 假设剩余资金一次赎回, 终止模拟.
+    data_t.currency.back().second += NUM_A * NAV_A;
     return 1;
   }
   
