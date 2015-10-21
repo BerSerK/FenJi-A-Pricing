@@ -3,6 +3,7 @@
 #undef timer
 
 #include <boost/timer/timer.hpp>
+#include <boost/filesystem.hpp>
 
 #include "FenJiA.h"
 
@@ -49,11 +50,22 @@ int FJASimulator::Config(std::string config_file ) {
       FixRate *= 0.01;
     } else if ( feature == "Tag" ) {
       Cfile >> Tag; 
+      char filename[100];
+      sprintf(filename, "data/%s/",
+	      Tag.c_str());
+      boost::filesystem::remove_all(filename);
+      boost::filesystem::create_directories(filename);
+      
     } else if ( feature == "Date" ) {
       Cfile >> value;
+      try{
       boost::gregorian::date d( boost::gregorian::from_string( value ) );
       startDate = d;
       startDateofYear = d.day_of_year()/365.;
+}catch (const boost::exception_detail::clone_impl<boost::exception_detail::error_info_injector<boost::bad_lexical_cast> >& e) {
+std::cerr << "日期格式错误:" << value << ", 应为 yyyy-mm-dd" << std::endl;
+return 1;
+}
       //std::cout << startDate << std::endl;
     } else if ( feature == "Sigma" ) {
       Cfile >> Sigma_file;
@@ -152,6 +164,45 @@ int FJASimulator::DisplayConfig(std::ostream& str) {
   str << "<=============================";
   str << "   END  ";
   str << "=============================>\n";
+
+  return 0;
+}
+
+
+int FJASimulator::ConfigCSV(std::ostream& str) {
+
+  str << "PID,"
+      << "SimulationNumber,"
+      << "SimulationLength,"
+      << "StockNumber,"
+      << "FactorNumber,"
+      << "IndexNumber,"
+      << "FundNumber,"
+      << "Tag," 
+      << "StartDate,"
+      << "startDateofYear,"
+      << "FJAfile," 
+      << "IndexWeightFile," 
+      << "FactorExposureFile," 
+      << "SigmaFile,"
+      << "OmegaFile" << std::endl;
+
+  str << getpid() << ","
+      << SimulationNumber << ","
+      << SimulationLength << ","
+      << StockNumber << ","
+      << FactorNumber << ","
+      << IndexNumber << ","
+      << FJALength << ","
+      << Tag << ","
+      << startDate << ","
+      << startDateofYear << ","
+      << FJA_file << ","
+      << IW_file << ","
+      << FE_file << ","
+      << Sigma_file << ","
+      << Omega_file << std::endl;
+
 
   return 0;
 }
@@ -264,10 +315,16 @@ int FJASimulator::ReadSigma( std::string Sigma_file ) {
   while( InFile.good() ) {
     InFile >> row;
     if (row.size() == 0) continue;
-    double sigma = std::stod( row[1] );
-    Stock s(row[0], sigma * sigma * YearLength, k);
-    StockArray.push_back( s );
-    StockMap[ row[0] ] = k;
+    try {
+      double sigma = std::stod( row[1] );
+      Stock s(row[0], sigma * sigma * YearLength, k);
+      StockArray.push_back( s );
+      StockMap[ row[0] ] = k;
+    } catch (const std::invalid_argument& ia) {
+      std::cerr <<"Invalid argument:" << ia.what()
+		<< ":"<< row[1] <<"is not a number." << std::endl;
+      return 1;
+    }
     //s.print();
     k++;
   }
@@ -293,16 +350,36 @@ int FJASimulator::ReadFactorExposure( std::string FE_file ) {
     std::vector< double> buf( FactorNumber);
     FactorExposure.push_back( buf );
   }
-  
+  std::map<std::string, size_t>::iterator it;
+  size_t k;
   while ( InFile.good() ) {
     InFile >> row;
-    size_t k = StockMap[ row[0] ];
-    //    std::cout << k << ": " << row[0] << std::endl;
+    if (row.size() != FactorNumber + 1) {
+      std::cout <<"wrong row size:" << row.size() << std::endl;
+      continue;
+    }
+    it = StockMap.find( row[0]);
+    if ( it != StockMap.end() ) {
+      k = StockMap[ row[0] ];
+    } else {
+      std::cout <<"Stock not Found:" << row[0] << std::endl;
+      //std::cout << k << ": " << row[0] << std::endl;
+      //std::cout << row[0] << std::endl;
+    }
     StockArray[k].FactorExposure = &FactorExposure[ k ];
     for ( size_t i = 0; i < FactorNumber; i ++ ) {
-      FactorExposure[k][i] = std::stod( row[i + 1]);
+      try {
+	FactorExposure[k][i] = std::stod( row[i + 1]);
+      } catch ( const std::invalid_argument& ia) {
+	if ( row[i + 1] == "NA") {
+	  FactorExposure[k][i] = 0; continue;
+	}
+	std::cerr <<"Invalid argument:" << ia.what() 
+		  <<": in row " << row[0] << " " 
+		  <<row[i+1] << " is not a number."<< std::endl;
+	return 1;
+      }
     }
-    if (row.size() != FactorNumber + 1) throw("Wrong row length."); 
   }
   std::cout << "Reading Factor Exposure Matrix Finished.\n";
   return 0;
@@ -378,13 +455,37 @@ int FJASimulator::ReadFJA( std::string FJA_file ) {
   //feature.print();
   while ( INfile.good() ) {
     INfile >> value;
+    //value.print();
     if (value.size() == 0) continue;
-    for ( size_t i = 0; i < feature.size(); i ++ ) {
+    for ( size_t i = 0; i < value.size(); i ++ ) {
       ValueMap[ feature[i] ] = value[i];
     }
-    FJABase *FJAbaseP = NewFJA( ValueMap, this);
-    if (FJAbaseP == NULL) return 1;
-    FJAarray.push_back( FJAbaseP ); 
+
+    try {
+      FJABase *FJAbaseP = NewFJA( ValueMap, this);
+      if (FJAbaseP == NULL) continue;
+      if ( abs(FJAbaseP -> NAV_m_init ) < 1e-3 ) {
+	std::cout << FJAbaseP -> id << " have 0 NAV_m. Not simulated.\n";
+      }	else if ( abs(FJAbaseP -> price ) < 1e-3 ) {
+	std::cout << FJAbaseP -> id << " have 0 price. Not simulated.\n";
+      } else {
+	FJAarray.push_back( FJAbaseP ); 
+      }
+    } catch (const std::invalid_argument& ia) {
+      std::cerr <<"Invalid argument:" << ia.what() << std::endl;
+      std::vector <std::string> v  = {"navM", "navA", "priceA",
+				      "rate", "ifRateFixed", "leverage",
+				      "rateType", "fee", "up", "down", 
+				      "redemption_fee"};
+      for (size_t i = 0; i < v.size() ; i ++ ) {
+	try {
+	  std::stod( ValueMap[ v[i] ]);
+	} catch (const std::invalid_argument& ia) {
+	  std::cerr << v[i] << "\n";
+	}
+      }
+      return 2;
+    }
   }
   FJALength = FJAarray.size( );
   if (FJALength == 0) {
@@ -394,11 +495,11 @@ int FJASimulator::ReadFJA( std::string FJA_file ) {
   return 0;
 }
 
-FJABase* FJASimulator::NewFJA( std::map<std::string, std::string> ValueMap, FJASimulator* FSP) {
+  FJABase* FJASimulator::NewFJA( std::map<std::string, std::string> ValueMap, FJASimulator* FSP) {
   if ( IndexMap.find( ValueMap["symbolIndex"] )
        == IndexMap.end() ) {
     std::cerr << "Wrong tracking index id:" 
-	      << ValueMap["symbolIndex"] << std::endl;
+	      << ValueMap["symbolIndex"] << " for symbolA: " << ValueMap["symbolA"]<< std::endl;
     return NULL;
   }
   // for ( std::map<std::string, std::string>::iterator it = ValueMap.begin();
@@ -407,6 +508,10 @@ FJABase* FJASimulator::NewFJA( std::map<std::string, std::string> ValueMap, FJAS
   // }
   if ( ValueMap["type"] == "1" ) {
     return new CommonA( ValueMap, FSP);
+  } else if ( ValueMap["type"] == "2" ) {
+    return new FJA2( ValueMap, FSP);
+  } else if ( ValueMap["type"] == "3" ) {
+    return new FJA3( ValueMap, FSP);
   } else {
     std::cerr << "不存在分级A类别: " << ValueMap["type"] << std::endl;
     return NULL;
@@ -445,7 +550,7 @@ int FJASimulator::Simulate() {
   while ( Count++ < SimulationNumber ) {
     ++ show_progress;
     SimulateTime = startDateofYear;
-    
+
     for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
       (*FJAit) -> Initialize();
     }
@@ -456,6 +561,12 @@ int FJASimulator::Simulate() {
 	(*FJAit) -> StepOn();
       }
     }
+    for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
+      if ( ! ( *FJAit ) -> End ) {
+	(*FJAit) -> Terminate();
+      }
+    }
+    
     if ( Count <= 10 ) {
       for ( FJAit = FJAarray.begin(); FJAit != FJAarray.end(); FJAit ++ ) {
 	(*FJAit) -> OutputPath();
@@ -505,11 +616,28 @@ int FJASimulator::OutputCov() {
 }
 
 int FJASimulator::OutputResults() {
+  char filename[100];
+  sprintf(filename, "data/%s/DataSet", Tag.c_str());
+  boost::filesystem::create_directories(filename);
+
   for ( std::vector< FJABase *>::iterator FJAit = FJAarray.begin();
 	FJAit != FJAarray.end(); FJAit ++ ) {
     (*FJAit) -> OutputDataSet();
   }
   
+
+  sprintf(filename, "data/%s/stats.csv", Tag.c_str());
+  ofstream fp(filename);
+  fp << "id,npv,irr,duration,\n";
+  for ( std::vector< FJABase *>::iterator FJAit = FJAarray.begin();
+	FJAit != FJAarray.end(); FJAit ++ ) {
+    fp << (*FJAit) -> id << ",";
+    fp << (*FJAit) -> median.NPV << ",";
+    fp << (*FJAit) -> median.IRR << ",";
+    fp << (*FJAit) -> median.duration << ",";
+    fp << "\n";
+  }
+  fp.close();
   return 0;
 }
 
@@ -522,6 +650,11 @@ int FJASimulator::Output() {
 	  Tag.c_str());
   std::ofstream fp(filename);
   DisplayConfig(fp); fp.close();
+
+  sprintf(filename, "data/%s/conf.csv",
+	  Tag.c_str());
+  fp.open(filename);
+  ConfigCSV(fp); fp.close();
 
   std::cout << ".";
   OutputCov();

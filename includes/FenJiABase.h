@@ -261,7 +261,7 @@ public:
    * 
    * @return 运行状态.
    */
-  int Initialize();
+  virtual int Initialize();
 
   /** 
    * 向前迭代一步. 判断是否上下折算, 是否到了定期折算日, 并执行相关计算. 判断是否应该终止模拟
@@ -273,7 +273,7 @@ public:
    *
    * @return 是否应该结束本次模拟, 1 是, 0 否.
    */
-  int StepOn();
+  virtual int StepOn();
   
   /** 
    * 结束一次模拟, 保存相关数据. 
@@ -322,7 +322,15 @@ public:
    * @return 运行状态.
    */
   virtual int down_conversion() { return 0;};
-  
+
+  /** 
+   * 触发定期折算的条件.
+   * 
+   * 
+   * @return 是否折算, 1是, 0否.
+   */
+  virtual int fix_condition() { return 0;};
+
   /** 
    *  固定折算. 固定周期的折算.
    * 
@@ -337,7 +345,7 @@ public:
    * 
    * @return 是否终止模拟, 1 是, 0 否.
    */
-  virtual int terminate_condition() {return 0;};
+  virtual int terminate_condition();
 
   /** 
    * 根据指数变化更新母基金净值.
@@ -357,6 +365,10 @@ public:
    */
   inline void Am2B() {
     NAV_B = leverage_ratio * NAV_m - ( leverage_ratio - 1) * NAV_A;
+    if ( NAV_B <= 0 ) {
+      NAV_B = 0.5 * down_triger;
+      AB2m();
+    }
   }
   
   /** 
@@ -397,6 +409,7 @@ public:
   double down_triger;		/**< 下折触发点. */
   size_t TrackingIndex;		/**< 母基金所跟踪的指数在指数数组中的编号. */
   double redemption_fee;	/**< 母基金赎回费用比例. */
+  double position;		/**< 仓位比例. 假设所有基金都是95%仓位运行. */
 
   double expiry;		/**< 到期日. */
   double sigma2;		/**< 年化波动率的平方. */
@@ -406,7 +419,9 @@ public:
   std::vector<double> NAV_A_vec;/**< A份净值数列. */
   double NUM_A;			/**< A份额相对数量. */
   double NAV_B;			/**< B份净值. */
+  std::vector<double> NAV_B_vec;/**< A份净值数列. */
   std::vector<FJAData> data_set;/**< 各次模拟数据. */
+  FJAData median;		/**< NPV IRR 的中值. */
   FJAData data_t;		/**< 本次模拟的数据. */
   bool End;			/**< 标记一条路径是否模拟结束. */
   FJASimulator* Simulator;	/**< 指向总控制器的指针, 用于调用其中的数据. */
@@ -424,13 +439,89 @@ private:
 class CommonA : public FJABase{ 
 public:
   CommonA( std::map<std::string, std::string> ValueMap, FJASimulator* FSP);
+  virtual int StepOn();
+  virtual int Initialize();
   virtual int up_condition();
   virtual int up_conversion();
   virtual int down_condition();
   virtual int down_conversion();
+  virtual int fix_condition();
   virtual int fix_conversion();
   virtual int terminate_condition();
   virtual void updateA();
+};
+
+/**
+ * 国联安双禧中证100. 150012
+ * 
+ */
+class FJA2: public FJABase{ 
+public:
+  FJA2( std::map<std::string, std::string> ValueMap, FJASimulator* FSP);
+  virtual int StepOn();
+  virtual int Initialize();
+  virtual int up_condition();
+  virtual int up_conversion();
+  virtual int down_condition();
+  virtual int down_conversion();
+  virtual int fix_condition();
+  virtual int fix_conversion();
+  virtual int terminate_condition();
+  virtual void updateA();
+private:
+  double last_fix_conversion;
+  double last_fix_conversion_init;
+  double fix_triger;
+  double conversion_period;
+};
+
+/**
+ * 申万菱信深证成指分级 150022
+ * 
+ */
+class FJA3: public FJABase{ 
+public:
+  FJA3( std::map<std::string, std::string> ValueMap, FJASimulator* FSP);
+  virtual int StepOn();
+  virtual int Initialize();
+  virtual int up_condition();
+  virtual int up_conversion();
+  virtual int down_condition();
+  virtual int down_conversion();
+  virtual int fix_condition();
+  virtual int fix_conversion();
+  virtual int terminate_condition();
+  virtual void updateA();
+private:
+  static constexpr int up_triger_day = 2;
+  int up_count;
+  int down_trigered;
+  double down_NAV_A;
+};
+
+
+/**
+ * 申万菱信深证成指分级 150022
+ * 
+ */
+class FJA4: public FJABase{ 
+public:
+  FJA4( std::map<std::string, std::string> ValueMap, FJASimulator* FSP);
+  virtual int StepOn();
+  virtual int Initialize();
+  virtual int up_condition();
+  virtual int up_conversion();
+  virtual int down_condition();
+  virtual int down_conversion();
+  virtual int fix_condition();
+  virtual int fix_conversion();
+  virtual int terminate_condition();
+  virtual void updateA();
+private:
+  static constexpr int up_triger_day = 2;
+  int up_count;
+  int down_trigered;
+  double down_NAV_A;
 };
 
 #endif

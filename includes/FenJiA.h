@@ -3,7 +3,7 @@
  * @author YeShiwei <yeshiwei.math@gmail.com>
  * @date   Tue Aug  4 16:21:33 2015
  * 
- * @brief  总控制类和各个分级A实现类的头文件.
+ * @brief  总控制类的头文件.
  * 
  * 
  */
@@ -24,6 +24,7 @@
 #include "cholesky.h"
 #include "Random.h"
 
+#define EPS 1e-8
 
 class Stock;
 class StockIndex;
@@ -66,6 +67,15 @@ public:
    * @return 运行状况.
    */
   int DisplayConfig(std::ostream& str);
+
+  /** 
+   * 以CSV格式输出配置参数.
+   * 
+   * @param str 
+   * 
+   * @return 运行状况.
+   */
+  int ConfigCSV(std::ostream& str);
   
   /** 
    * 读取保存基金参数的文件, 将在Config函数中被调用.

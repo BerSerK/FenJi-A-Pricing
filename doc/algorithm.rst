@@ -142,12 +142,8 @@ Monte Carlo模拟完成之后, 我们需要计算如下统计量:
 
 来计算隐含收益率 :math:`r`.
 
-考虑母基金赎回成本 :math:`c` , 这个公式变为 
-
-.. math:: P = \sum_{i=1}^{n}\frac{CF_i/(1+c)}{(1+r)^{t_i}}
-
 而如果用已知收益率去回推理论价格 :math:`P_t`. 我们同样有公式 
 
-.. math:: P_t = \sum_{i=1}^{n}\frac{CF_i/(1+c)}{(1+y_k/k)^{k\cdot t_i}}
+.. math:: P_t = \sum_{i=1}^{n}\frac{CF_i}{(1+y_k/k)^{k\cdot t_i}}
 
-这里我们通过Monte Carlo模拟出现金流 :math:`CF_i` 然后通过给定的赎回成本 :math:`c` 与周期利率 :math:`y_k` 就可以用上面的公式计算出理论价格了.
+这里我们通过Monte Carlo模拟出现金流 :math:`CF_i` 与固定投资利率 :math:`y_k` 就可以用上面的公式计算出理论价格了.

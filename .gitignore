@@ -12,3 +12,10 @@ doc/doxygen/*
 
 data/*
 config*
+
+py/**/*.pyc
+
+*.RData
+.Rhistory
+
+stats/

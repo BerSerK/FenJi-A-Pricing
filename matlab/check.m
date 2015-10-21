@@ -1,9 +1,9 @@
-Omega = csvread('config/cov_20150727.csv', 1, 1);
-X = csvread('config/expo.csv',1,1);
-Sigma =diag( csvread('config/srisk.csv', 1,1));
-W = csvread('config/indexWgt.csv', 1,1)';
+Omega = csvread('config2/cov.csv', 1, 1);
+X = csvread('config2/expo.csv',1,1);
+Sigma =diag( csvread('config2/srisk.csv', 1,1));
+W = csvread('config2/indexWgt.csv', 1,1)';
 %sum(W')
-cov_s = W*Sigma*W'
+cov_s = W*Sigma*W';
 cov_b = W * (X * Omega * X' + Sigma) *W'
 
 sample = load('sample.txt');

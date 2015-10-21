@@ -14,6 +14,7 @@ Contents:
    ./model.rst
    ./design.rst
    ./algorithm.rst
+   ./report.rst
 
 
 Indices and tables
